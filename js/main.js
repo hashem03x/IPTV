@@ -16,15 +16,30 @@ function updateDateTime() {
   timeElement.textContent = time;
 }
 updateDateTime();
-setInterval(updateDateTime, 1000); 
+setInterval(updateDateTime, 1000);
 
+
+document.addEventListener("DOMContentLoaded", async () => {
+  const sidebarList = document.querySelectorAll(".category-sidebar li");
+  if (sidebarList.length > 0) {
+    sidebarList[0].classList.add("active");
+        const firstItemId = sidebarList[0].id;
+    if (firstItemId) {
+      await fetchDataById(firstItemId);
+    }
+  }
+  const sidebarContainer = document.querySelector(".category-sidebar");
+  if (sidebarContainer) {
+    enableKeyboardNavigation(sidebarContainer);
+  }
+});
 
 // Adding event listeners for key events
 document.addEventListener("DOMContentLoaded", () => {
   const buttons = document.querySelectorAll(".buttons button");
   const mainMenu = document.querySelector("#main-menu");
   let currentIndex = 0;
-  let contentDataIndex = 0;
+  let contentDataIndex = -1;
   const itemsPerRow = 4;
   buttons[currentIndex].classList.add("active");
 
@@ -42,8 +57,19 @@ document.addEventListener("DOMContentLoaded", () => {
     const category = localStorage.getItem("category");
     const contentDataItems = document.querySelectorAll(".content-data .item");
 
-    if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Enter", "Escape"].includes(e.key)) {
-      const activeButton = document.querySelector("#main-menu .buttons button.active");
+    if (
+      [
+        "ArrowLeft",
+        "ArrowRight",
+        "ArrowUp",
+        "ArrowDown",
+        "Enter",
+        "Escape",
+      ].includes(e.key)
+    ) {
+      const activeButton = document.querySelector(
+        "#main-menu .buttons button.active"
+      );
       if (e.key === "Enter" && !activeButton) {
         console.log("No active button, Enter key event disabled.");
         return;
@@ -58,9 +84,17 @@ document.addEventListener("DOMContentLoaded", () => {
           if (!mainMenu.classList.contains("d-none")) {
             currentIndex = (currentIndex - 1 + buttons.length) % buttons.length;
           } else {
-            contentDataIndex =
-              (contentDataIndex - 1 + contentDataItems.length) % contentDataItems.length;
-            highlightItem(contentDataItems, contentDataIndex);
+            console.log(contentDataIndex);
+            if (contentDataIndex === 0) {
+              document
+                .querySelector(`#${category} .content`)
+                .classList.add("d-none");
+            } else {
+              contentDataIndex =
+                (contentDataIndex - 1 + contentDataItems.length) %
+                contentDataItems.length;
+              highlightItem(contentDataItems, contentDataIndex);
+            }
           }
           break;
 
@@ -117,7 +151,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-
 // function to handle enter key event
 function handleEnterKey(mainMenu) {
   const category = localStorage.getItem("category");
@@ -127,15 +160,15 @@ function handleEnterKey(mainMenu) {
         if (mainMenu) mainMenu.classList.add("d-none");
         document.getElementById(category).classList.remove("d-none");
         fetchCurrentCategories();
-        case "Movie":
-          if (mainMenu) mainMenu.classList.add("d-none");
-          document.getElementById(category).classList.remove("d-none");
-          fetchCurrentCategories();
-        case "Live":
-          break
-        default:
-          break
-      }
+      case "Movie":
+        if (mainMenu) mainMenu.classList.add("d-none");
+        document.getElementById(category).classList.remove("d-none");
+        fetchCurrentCategories();
+      case "Live":
+        break;
+      default:
+        break;
+    }
   }
 }
 // function to handle ESC key event
@@ -144,17 +177,13 @@ function handleEscapeKey(mainMenu) {
   const sections = ["Series", "Movie"];
   for (const section of sections) {
     const sectionElement = document.getElementById(section);
-    const content = sectionElement.querySelector(".content");
-    if(!content.classList.contains("d-none")){
-      content.classList.add("d-none");
-    }else if (sectionElement && !sectionElement.classList.contains("d-none") && content.classList.contains("d-none")) {
+     if (sectionElement && !sectionElement.classList.contains("d-none")) {
       sectionElement.classList.add("d-none");
       mainMenu.classList.remove("d-none");
       EmptyContent(section);
     }
   }
 }
-
 
 // function to fetch Categories
 async function fetchCurrentCategories() {
@@ -165,22 +194,33 @@ async function fetchCurrentCategories() {
   }
 
   try {
-    const response = await fetch(`https://demo-m3u.onrender.com/category/get?type=${category}`);
+    const response = await fetch(
+      `https://demo-m3u.onrender.com/category/get?type=${category}`
+    );
     if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
     const data = await response.json();
-    const categoriesContainer = document.querySelector(`#${category} .categories`);
+    const categoriesContainer = document.querySelector(
+      `#${category} .categories`
+    );
     if (!categoriesContainer) {
       console.error(`No container found for category: ${category}`);
       return;
     }
     categoriesContainer.innerHTML = "";
-    data.categories.forEach((categoryItem) => {
+    var firstItemId
+    data.categories.forEach((categoryItem, index) => {
       const listItem = document.createElement("li");
       listItem.id = categoryItem._id;
       listItem.tabIndex = 0;
-      listItem.innerHTML = `<p class="name">${categoryItem.category}</p>`;
+      listItem.innerHTML = `<p class=\"name\">${categoryItem.category}</p>`;
+      if (index === 0){
+        listItem.classList.add("active");
+        firstItemId = listItem.id;
+      } // Default active item
       categoriesContainer.appendChild(listItem);
+      
     });
+    await fetchDataById(firstItemId);
 
     enableKeyboardNavigation(categoriesContainer);
   } catch (error) {
@@ -188,17 +228,19 @@ async function fetchCurrentCategories() {
   }
 }
 
-
 // Function to enable keyboard navigation when sidebar is enabled
 function enableKeyboardNavigation(container) {
   const category = localStorage.getItem("category");
-  const listItems = container.querySelectorAll(`#${category} .category-sidebar li`);
+  const listItems = container.querySelectorAll(
+    `#${category} .category-sidebar li`
+  );
   let currentIndex = -1;
 
   document.addEventListener("keydown", async (event) => {
     // Check if content items are visible
     const contentContainer = document.querySelector(`#${category} .content`);
-    const isContentVisible = contentContainer && !contentContainer.classList.contains("d-none");
+    const isContentVisible =
+      contentContainer && !contentContainer.classList.contains("d-none");
 
     // Stop sidebar navigation if content items are opened
     if (isContentVisible) return;
@@ -213,7 +255,7 @@ function enableKeyboardNavigation(container) {
       highlightItem(listItems, currentIndex);
     } else if (event.key === "Enter" && currentIndex !== -1) {
       const selectedItem = listItems[currentIndex];
-      selectedItem.classList.add("active");
+      highlightItem(listItems, currentIndex)
       if (selectedItem) {
         await fetchDataById(selectedItem.id);
       }
@@ -226,16 +268,17 @@ function highlightItem(listItems, index) {
   listItems.forEach((item) => item.classList.remove("active"));
   const currentItem = listItems[index];
   currentItem.classList.add("active");
-  currentItem.scrollIntoView({ behavior: "smooth", block: "center" });
+  currentItem.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-
 // Function to fetch the selected category data By ID
-async function fetchDataById(id) {4
+async function fetchDataById(id) {
   const category = localStorage.getItem("category");
   const displayContainer = document.querySelector(`#${category} .content-data`);
   try {
-    const response = await fetch(`https://demo-m3u.onrender.com/playlist/getByCategory/${id}`);
+    const response = await fetch(
+      `https://demo-m3u.onrender.com/playlist/getByCategory/${id}`
+    );
     if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
 
     const data = await response.json();
@@ -256,10 +299,7 @@ function displayFetchedData(data) {
     console.error("No display container found");
     return;
   }
-
-  
   contentContainer.classList.remove("d-none");
-
   data.forEach((categoryItem) => {
     displayContainer.innerHTML += `
       <div class="item me-3">
@@ -268,7 +308,6 @@ function displayFetchedData(data) {
       </div>`;
   });
 }
-
 
 // function to empty the contents of the category-container
 function EmptyContent(category) {
