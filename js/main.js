@@ -18,14 +18,6 @@ function updateDateTime() {
 updateDateTime();
 setInterval(updateDateTime, 1000);
 
-// const saveDataTypeToLocalStorage = () => {
-//     const dataType = buttons[currentIndex].getAttribute("data-type");
-//     if (dataType) {
-//       localStorage.setItem("category", dataType);
-//       console.log(`Saved data-type: ${dataType}`);
-//     }
-//   };
-
 const mainMenu = document.getElementById("main-menu");
 const category = localStorage.getItem("category");
 var currentPlace = "main-menu";
@@ -33,6 +25,8 @@ let mainMenuKeydownHandler = null;
 let SeriesScreenKeydownHandler = null;
 let MoviesScreenKeydownHandler = null;
 let ContentScreenKeydownHandler = null;
+localStorage.setItem("lastActiveIndex" , 0)
+
 
 // Main Menu Controller and Cleaner Start--------------------------------
 function runMainMenuController() {
@@ -90,9 +84,9 @@ async function runSeriesController() {
     Array.from(buttons).findIndex((item) =>
       item.classList.contains("active")
     ) || 0;
-  if (!seriesCategoryhaveBeenSelected) {
-    buttons[0].classList.add("selected");
-  }
+    if (!seriesCategoryhaveBeenSelected && buttons.length > 0) {
+        buttons[0].classList.add("selected");
+      }
   seriesCategoryhaveBeenSelected = true;
   const handleKeydown = async (e) => {
     if (e.key === "ArrowRight") {
@@ -107,7 +101,7 @@ async function runSeriesController() {
       });
       buttons[currentIndex].classList.add("selected");
       cleanupSeriesScreenController();
-      localStorage.setItem("lastActiveIndex" , 0)
+      localStorage.setItem("lastActiveIndex", 0);
       await controlContentArea(buttons[currentIndex].id, "enter");
     }
     if (e.key === "Escape") {
@@ -158,7 +152,7 @@ async function runMoviesController() {
     Array.from(buttons).findIndex((item) =>
       item.classList.contains("active")
     ) || 0;
-  if (!movieCategoryhaveBeenSelected) {
+  if (!movieCategoryhaveBeenSelected && buttons.length > 0) {
     buttons[0].classList.add("selected");
   }
   movieCategoryhaveBeenSelected = true;
@@ -175,7 +169,7 @@ async function runMoviesController() {
         button.classList.remove("selected");
       });
       buttons[currentIndex].classList.add("selected");
-      localStorage.setItem("lastActiveIndex" , 0)
+      localStorage.setItem("lastActiveIndex", 0);
       await controlContentArea(buttons[currentIndex].id, "enter");
     }
     if (e.key === "Escape") {
@@ -210,84 +204,89 @@ function cleanupMoviesScreenController() {
 
 // Content Screen Controller and Cleaner Start--------------------------------
 async function controlContentArea(id, byWho) {
-  console.log("Controller Initialized with id: " + id);
-
-  if (byWho === "enter") {
-    await fetchDataById(id);
-  }
-  const items = document.querySelectorAll(".content-data .item");
-  const columns = 4;
-  const rows = Math.ceil(items.length / columns);
-  let currentIndex = Number(localStorage.getItem("lastActiveIndex")) || -1;
-
-  const handleKeydown = async (e) => {
-    let currentRow = Math.floor(currentIndex / columns);
-    let currentCol = currentIndex % columns;
-
-    if (e.key === "ArrowRight") {
-      if (currentCol < columns - 1 && currentIndex + 1 < items.length) {
-        currentIndex++;
-      } else if (
-        currentCol === columns - 1 &&
-        currentIndex + 1 < items.length
-      ) {
-        currentIndex++;
-      }
-      updateActiveClass(items, currentIndex);
-      currentRow = Math.floor(currentIndex / columns);
-      currentCol = currentIndex % columns;
+    console.log("Controller Initialized with id: " + id);
+  
+    if (byWho === "enter") {
+      await fetchDataById(id);
     }
-
-    if (e.key === "ArrowLeft") {
-      if (currentCol === 0) {
-        console.log("Exiting"); // Log 'exiting' if at the first column of a row
+  
+    const items = document.querySelectorAll(".content-data .item");
+    const columns = 4;
+    const rows = Math.ceil(items.length / columns);
+    let currentIndex = Number(localStorage.getItem("lastActiveIndex")) || -1;
+  
+    // If no item is active, initialize to the first item
+    if (currentIndex === -1 && items.length > 0) {
+      currentIndex = 0;
+      updateActiveClass(items, currentIndex); // Highlight the first item
+    }
+  
+    const handleKeydown = async (e) => {
+      let currentRow = Math.floor(currentIndex / columns);
+      let currentCol = currentIndex % columns;
+  
+      if (e.key === "ArrowRight") {
+        if (currentCol < columns - 1 && currentIndex + 1 < items.length) {
+          currentIndex++;
+        } else if (
+          currentCol === columns - 1 &&
+          currentIndex + 1 < items.length
+        ) {
+          currentIndex++;
+        }
+        updateActiveClass(items, currentIndex);
+        currentRow = Math.floor(currentIndex / columns);
+        currentCol = currentIndex % columns;
+      }
+  
+      if (e.key === "ArrowLeft") {
+        if (currentCol === 0) {
+          console.log("Exiting"); // Log 'exiting' if at the first column of a row
+          cleanupContentScreenController();
+          localStorage.setItem("lastActiveIndex", currentIndex);
+          items[currentIndex].classList.remove("active");
+          if (!MoviesScreenKeydownHandler !== null) {
+            await runMoviesController();
+          }
+          if (!SeriesScreenKeydownHandler !== null) {
+            await runSeriesController();
+          }
+        } else {
+          currentIndex--;
+          updateActiveClass(items, currentIndex);
+        }
+      }
+  
+      if (e.key === "ArrowDown") {
+        if (currentRow < rows - 1 && currentIndex + columns < items.length) {
+          currentIndex += columns;
+          updateActiveClass(items, currentIndex);
+        }
+      }
+  
+      if (e.key === "ArrowUp") {
+        if (currentRow > 0) {
+          currentIndex -= columns;
+          updateActiveClass(items, currentIndex);
+        }
+      }
+  
+      if (e.key === "Escape") {
         cleanupContentScreenController();
-        localStorage.setItem("lastActiveIndex", currentIndex);
-        items[currentIndex].classList.remove("active");
-        if (!MoviesScreenKeydownHandler) {
-          await runMoviesController();
-        }
-        if (!SeriesScreenKeydownHandler) {
-          await runSeriesController();
-        }
-      } else {
-        currentIndex--;
-        updateActiveClass(items, currentIndex);
+        handleEscapeKey();
       }
+    };
+  
+    // Remove any previous keydown handler
+    if (ContentScreenKeydownHandler) {
+      document.removeEventListener("keydown", ContentScreenKeydownHandler);
     }
-
-    if (e.key === "ArrowDown") {
-      if (currentRow < rows - 1 && currentIndex + columns < items.length) {
-        currentIndex += columns;
-        updateActiveClass(items, currentIndex);
-      }
-    }
-
-    if (e.key === "ArrowUp") {
-      if (currentRow > 0) {
-        currentIndex -= columns;
-        updateActiveClass(items, currentIndex);
-      }
-    }
-
-    if (e.key === "Escape") {
-      cleanupContentScreenController();
-      handleEscapeKey();
-    }
-  };
-
-  // Remove any previous keydown handler
-  if (ContentScreenKeydownHandler) {
-    document.removeEventListener("keydown", ContentScreenKeydownHandler);
+  
+    // Add the new keydown handler
+    ContentScreenKeydownHandler = handleKeydown;
+    document.addEventListener("keydown", handleKeydown);
   }
-
-  // Add the new keydown handler
-  ContentScreenKeydownHandler = handleKeydown;
-  document.addEventListener("keydown", handleKeydown);
-
-  // Initialize the active class
-//   updateActiveClass(items, currentIndex);
-}
+  
 
 function cleanupContentScreenController() {
   console.log("cleanupContentScreenController");
