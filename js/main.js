@@ -78,6 +78,9 @@ runMainMenuController();
 
 // Series Screen Controller and Cleaner End--------------------------------
 async function runSeriesController() {
+    if(SeriesScreenKeydownHandler !== null){
+        return
+    }
   console.log("In runSeriesController");
   const buttons = document.querySelectorAll("#Series .categories li");
   let currentIndex =
@@ -106,6 +109,7 @@ async function runSeriesController() {
     }
     if (e.key === "ArrowDown") {
       currentIndex = (currentIndex + 1) % buttons.length;
+      console.log(buttons)
       updateActiveClass(buttons, currentIndex);
     }
     if (e.key === "ArrowUp") {
@@ -263,9 +267,15 @@ function cleanupContentScreenController() {
 // Content Screen Controller and Cleaner End--------------------------------
 
 const updateActiveClass = (items, index) => {
-  items.forEach((item) => item.classList.remove("active"));
-  items[index].classList.add("active");
-  items[index].scrollIntoView({ behavior: "instant", block: "start" });
+    if(items.length === 0){
+        return
+    }
+    if(items){
+        items.forEach((item) => item.classList.remove("active"));
+        items[index].classList.add("active");
+        items[index].scrollIntoView({ behavior: "instant", block: "start" });
+
+    }
 };
 
 var lastCategoryClicked = 0;
@@ -315,12 +325,10 @@ async function handleEnterKey(button) {
 // function to handle ESC key event
 
 function handleEscapeKey() {
-  if (!SeriesScreenKeydownHandler) {
-    cleanupSeriesScreenController();
-  }
-  if (!mainMenuKeydownHandler) {
-    cleanupSeriesScreenController();
-  }
+    const movieCategories = document.querySelector("#Movie .categories");
+    movieCategories.innerHTML = "";
+    const seriesCategories = document.querySelector("#Series .categories");
+    seriesCategories.innerHTML = "";
   const sections = ["Series", "Movie"];
   for (const section of sections) {
     const sectionElement = document.getElementById(section);
