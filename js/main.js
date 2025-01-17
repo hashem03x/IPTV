@@ -19,21 +19,10 @@ updateDateTime();
 setInterval(updateDateTime, 1000);
 
 
-document.addEventListener("DOMContentLoaded", async () => {
-  const sidebarList = document.querySelectorAll(".category-sidebar li");
-  if (sidebarList.length > 0) {
-    sidebarList[0].classList.add("active");
-        const firstItemId = sidebarList[0].id;
-    if (firstItemId) {
-      await fetchDataById(firstItemId);
-    }
-  }
-  const sidebarContainer = document.querySelector(".category-sidebar");
-  if (sidebarContainer) {
-    enableKeyboardNavigation(sidebarContainer);
-  }
-});
 
+
+  var lastCategoryClicked = 0
+  localStorage.setItem("lastCategoryClicked", 0)
 // Adding event listeners for key events
 document.addEventListener("DOMContentLoaded", () => {
   const buttons = document.querySelectorAll(".buttons button");
@@ -42,7 +31,6 @@ document.addEventListener("DOMContentLoaded", () => {
   let contentDataIndex = -1;
   const itemsPerRow = 4;
   buttons[currentIndex].classList.add("active");
-
   // Save selected button data type to local storage
   const saveDataTypeToLocalStorage = () => {
     const dataType = buttons[currentIndex].getAttribute("data-type");
@@ -55,8 +43,11 @@ document.addEventListener("DOMContentLoaded", () => {
   // Keyboard navigation
   document.addEventListener("keydown", (e) => {
     const category = localStorage.getItem("category");
+  const contentArea = document.querySelector(`#${category} .content`)
     const contentDataItems = document.querySelectorAll(".content-data .item");
-
+    const categoryListItems = document.querySelectorAll(
+      `#${category} .category-sidebar li`
+    );
     if (
       [
         "ArrowLeft",
@@ -84,11 +75,20 @@ document.addEventListener("DOMContentLoaded", () => {
           if (!mainMenu.classList.contains("d-none")) {
             currentIndex = (currentIndex - 1 + buttons.length) % buttons.length;
           } else {
-            console.log(contentDataIndex);
-            if (contentDataIndex === 0) {
+            if (contentDataIndex % itemsPerRow === 0) {
+              document.querySelector(`#${category} .content`).classList.add("d-none");
               document
-                .querySelector(`#${category} .content`)
-                .classList.add("d-none");
+                .querySelector(`#${category} .categories`)
+                .classList.remove("d-none");
+                contentDataIndex = -1;
+
+              if (categoryListItems.length > 0) {
+                highlightItem(categoryListItems, localStorage.getItem("lastCategoryClicked"));
+                const categoriesContainer = document.querySelector(
+                  `#${category} .categories`
+                );
+                // enableKeyboardNavigation(categoriesContainer);
+              }
             } else {
               contentDataIndex =
                 (contentDataIndex - 1 + contentDataItems.length) %
@@ -97,18 +97,22 @@ document.addEventListener("DOMContentLoaded", () => {
             }
           }
           break;
+        
 
         case "ArrowRight":
+          console.log()
           if (!mainMenu.classList.contains("d-none")) {
             currentIndex = (currentIndex + 1) % buttons.length;
+            
           } else {
             contentDataIndex = (contentDataIndex + 1) % contentDataItems.length;
             highlightItem(contentDataItems, contentDataIndex);
+            highlightItem(categoryListItems, localStorage.getItem("lastCategoryClicked"));
           }
           break;
 
         case "ArrowUp":
-          if (mainMenu.classList.contains("d-none")) {
+          if (mainMenu.classList.contains("d-none") && !contentArea.classList.contains("d-none")) {
             if (contentDataIndex - itemsPerRow >= 0) {
               contentDataIndex -= itemsPerRow;
             }
@@ -117,7 +121,7 @@ document.addEventListener("DOMContentLoaded", () => {
           break;
 
         case "ArrowDown":
-          if (mainMenu.classList.contains("d-none")) {
+          if (mainMenu.classList.contains("d-none") && !contentArea.classList.contains("d-none")) {
             if (contentDataIndex + itemsPerRow < contentDataItems.length) {
               contentDataIndex += itemsPerRow;
             }
@@ -127,6 +131,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         case "Enter":
           handleEnterKey(mainMenu);
+          
           break;
 
         case "Escape":
@@ -154,18 +159,34 @@ document.addEventListener("DOMContentLoaded", () => {
 // function to handle enter key event
 function handleEnterKey(mainMenu) {
   const category = localStorage.getItem("category");
+  const contentDataContainer = document.querySelector(`#${category} .content`);
+  contentDataContainer.classList.contains("d-none");
   if (category) {
     switch (category) {
       case "Series":
         if (mainMenu) mainMenu.classList.add("d-none");
         document.getElementById(category).classList.remove("d-none");
-        fetchCurrentCategories();
+          if(contentDataContainer.classList.contains("d-none") === true) {
+            fetchCurrentCategories();
+          }else if(contentDataContainer.classList.contains("d-none") === false){
+            return
+          }
       case "Movie":
         if (mainMenu) mainMenu.classList.add("d-none");
         document.getElementById(category).classList.remove("d-none");
-        fetchCurrentCategories();
+        if(contentDataContainer.classList.contains("d-none") === true) {
+          fetchCurrentCategories();
+        }else if(contentDataContainer.classList.contains("d-none") === false){
+          return
+        }
       case "Live":
-        break;
+        return null;
+      case "Catchup":
+        return null;
+      case "Settings":
+        return null;
+      case "Reload":
+        return null;
       default:
         break;
     }
@@ -181,6 +202,7 @@ function handleEscapeKey(mainMenu) {
       sectionElement.classList.add("d-none");
       mainMenu.classList.remove("d-none");
       EmptyContent(section);
+      localStorage.setItem("lastCategoryClicked" , 0)
     }
   }
 }
@@ -213,12 +235,11 @@ async function fetchCurrentCategories() {
       listItem.id = categoryItem._id;
       listItem.tabIndex = 0;
       listItem.innerHTML = `<p class=\"name\">${categoryItem.category}</p>`;
-      if (index === 0){
+      if (index === Number(localStorage.getItem("lastCategoryClicked"))){
         listItem.classList.add("active");
         firstItemId = listItem.id;
       } // Default active item
       categoriesContainer.appendChild(listItem);
-      
     });
     await fetchDataById(firstItemId);
 
@@ -237,24 +258,29 @@ function enableKeyboardNavigation(container) {
   let currentIndex = -1;
 
   document.addEventListener("keydown", async (event) => {
-    // Check if content items are visible
     const contentContainer = document.querySelector(`#${category} .content`);
     const isContentVisible =
       contentContainer && !contentContainer.classList.contains("d-none");
 
-    // Stop sidebar navigation if content items are opened
-    if (isContentVisible) return;
+    if (isContentVisible) {
+        console.log("Returning")
+      return;
+    }
 
     if (listItems.length === 0) return;
 
-    if (event.key === "ArrowDown") {
+    if (event.key === "ArrowDown" && contentContainer.classList.contains("d-none")) {
       currentIndex = (currentIndex + 1) % listItems.length;
+      localStorage.setItem("lastCategoryClicked", currentIndex)
       highlightItem(listItems, currentIndex);
-    } else if (event.key === "ArrowUp") {
+    } else if (event.key === "ArrowUp" && contentContainer.classList.contains("d-none")) {
       currentIndex = (currentIndex - 1 + listItems.length) % listItems.length;
+      localStorage.setItem("lastCategoryClicked", currentIndex)
       highlightItem(listItems, currentIndex);
     } else if (event.key === "Enter" && currentIndex !== -1) {
       const selectedItem = listItems[currentIndex];
+      lastCategoryClicked = currentIndex
+      localStorage.setItem("lastCategoryClicked", currentIndex)
       highlightItem(listItems, currentIndex)
       if (selectedItem) {
         await fetchDataById(selectedItem.id);
@@ -267,9 +293,12 @@ function enableKeyboardNavigation(container) {
 function highlightItem(listItems, index) {
   listItems.forEach((item) => item.classList.remove("active"));
   const currentItem = listItems[index];
-  currentItem.classList.add("active");
-  currentItem.scrollIntoView({ behavior: "smooth", block: "start" });
+  if (currentItem) {
+    currentItem.classList.add("active");
+    currentItem.scrollIntoView({ behavior: "instant", block: "start" });
+  }
 }
+
 
 // Function to fetch the selected category data By ID
 async function fetchDataById(id) {
