@@ -107,6 +107,7 @@ async function runSeriesController() {
       });
       buttons[currentIndex].classList.add("selected");
       cleanupSeriesScreenController();
+      localStorage.setItem("lastActiveIndex" , 0)
       await controlContentArea(buttons[currentIndex].id, "enter");
     }
     if (e.key === "Escape") {
@@ -174,6 +175,7 @@ async function runMoviesController() {
         button.classList.remove("selected");
       });
       buttons[currentIndex].classList.add("selected");
+      localStorage.setItem("lastActiveIndex" , 0)
       await controlContentArea(buttons[currentIndex].id, "enter");
     }
     if (e.key === "Escape") {
