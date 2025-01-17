@@ -91,12 +91,12 @@ async function runSeriesController() {
     if (e.key === "ArrowRight") {
       currentPlace = "Series content area";
       cleanupSeriesScreenController();
-      await controlContentArea(buttons[currentIndex].id);
+      await controlContentArea(buttons[currentIndex].id , "right");
     }
     if (e.key === "Enter") {
       currentPlace = "Series content area";
       cleanupSeriesScreenController();
-      await controlContentArea(buttons[currentIndex].id);
+      await controlContentArea(buttons[currentIndex].id , "enter");
     }
     if (e.key === "Escape") {
       if (!SeriesScreenKeydownHandler) {
@@ -150,12 +150,12 @@ async function runMoviesController() {
     if (e.key === "ArrowRight") {
       currentPlace = "Movies content area";
       cleanupMoviesScreenController();
-      await controlContentArea(buttons[currentIndex].id);
+      await controlContentArea(buttons[currentIndex].id , "right");
     }
     if (e.key === "Enter") {
       currentPlace = "Movies content area";
       cleanupMoviesScreenController();
-      await controlContentArea(buttons[currentIndex].id);
+      await controlContentArea(buttons[currentIndex].id , "enter");
     }
     if (e.key === "Escape") {
       cleanupMoviesScreenController();
@@ -188,10 +188,12 @@ function cleanupMoviesScreenController() {
 // Movies Screen Controller and Cleaner End--------------------------------
 
 // Content Screen Controller and Cleaner Start--------------------------------
-async function controlContentArea(id) {
+async function controlContentArea(id , byWho) {
   console.log("Controller Initialized with id: " + id);
-  await fetchDataById(id);
 
+    if(byWho === "enter"){
+        await fetchDataById(id);   
+    }
   const items = document.querySelectorAll(".content-data .item");
   const columns = 4;
   const rows = Math.ceil(items.length / columns);
@@ -212,6 +214,7 @@ async function controlContentArea(id) {
       if (currentCol === 0) {
         console.log("Exiting"); // Log 'exiting' if at the first column of a row
         cleanupContentScreenController();
+        items[currentIndex].classList.remove("active");
         if (!MoviesScreenKeydownHandler) {
           await runMoviesController();
         }
