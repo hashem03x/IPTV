@@ -18,167 +18,287 @@ function updateDateTime() {
 updateDateTime();
 setInterval(updateDateTime, 1000);
 
+// const saveDataTypeToLocalStorage = () => {
+//     const dataType = buttons[currentIndex].getAttribute("data-type");
+//     if (dataType) {
+//       localStorage.setItem("category", dataType);
+//       console.log(`Saved data-type: ${dataType}`);
+//     }
+//   };
 
+const mainMenu = document.getElementById("main-menu");
+const category = localStorage.getItem("category");
+var currentPlace = "main-menu";
+let mainMenuKeydownHandler = null;
+let SeriesScreenKeydownHandler = null;
+let MoviesScreenKeydownHandler = null;
+let ContentScreenKeydownHandler = null;
 
-
-  var lastCategoryClicked = 0
-  localStorage.setItem("lastCategoryClicked", 0)
-// Adding event listeners for key events
-document.addEventListener("DOMContentLoaded", () => {
+// Main Menu Controller and Cleaner Start--------------------------------
+function runMainMenuController() {
   const buttons = document.querySelectorAll(".buttons button");
-  const mainMenu = document.querySelector("#main-menu");
   let currentIndex = 0;
-  let contentDataIndex = -1;
-  const itemsPerRow = 4;
   buttons[currentIndex].classList.add("active");
-  // Save selected button data type to local storage
-  const saveDataTypeToLocalStorage = () => {
-    const dataType = buttons[currentIndex].getAttribute("data-type");
-    if (dataType) {
-      localStorage.setItem("category", dataType);
-      console.log(`Saved data-type: ${dataType}`);
+  const handleKeydown = (e) => {
+    if (e.key === "ArrowLeft") {
+      buttons[currentIndex].classList.remove("active");
+      currentIndex = (currentIndex - 1 + buttons.length) % buttons.length;
+      buttons[currentIndex].classList.add("active");
+    }
+    if (e.key === "ArrowRight") {
+      buttons[currentIndex].classList.remove("active");
+      currentIndex = (currentIndex + 1) % buttons.length;
+      buttons[currentIndex].classList.add("active");
+      console.log("Right");
+    }
+    if (e.key === "Enter") {
+      handleEnterKey(buttons[currentIndex]);
+    }
+    if (e.key === "Escape") {
+      handleEscapeKey();
+    }
+  };
+  if (mainMenuKeydownHandler) {
+    document.removeEventListener("keydown", mainMenuKeydownHandler);
+  }
+  mainMenuKeydownHandler = handleKeydown;
+  document.addEventListener("keydown", handleKeydown);
+}
+function cleanupMainMenuController() {
+  if (mainMenuKeydownHandler) {
+    document.removeEventListener("keydown", mainMenuKeydownHandler);
+    mainMenuKeydownHandler = null; // Reset the reference
+  }
+  const buttons = document.querySelectorAll(".buttons button");
+  buttons.forEach((button) => button.classList.remove("active"));
+}
+
+runMainMenuController();
+// Main Menu Controller and Cleaner End--------------------------------
+
+// Series Screen Controller and Cleaner End--------------------------------
+async function runSeriesController() {
+  console.log("In runSeriesController");
+  const buttons = document.querySelectorAll("#Series .categories li");
+  let currentIndex =
+    Array.from(buttons).findIndex((item) =>
+      item.classList.contains("active")
+    ) || 0;
+  const handleKeydown = async (e) => {
+    if (e.key === "ArrowRight") {
+      currentPlace = "Series content area";
+      cleanupSeriesScreenController();
+      await controlContentArea(buttons[currentIndex].id);
+    }
+    if (e.key === "Enter") {
+      currentPlace = "Series content area";
+      cleanupSeriesScreenController();
+      await controlContentArea(buttons[currentIndex].id);
+    }
+    if (e.key === "Escape") {
+      if (!SeriesScreenKeydownHandler) {
+        cleanupSeriesScreenController();
+      }
+      if (!MoviesScreenKeydownHandler) {
+        cleanupMoviesScreenController();
+      }
+      handleEscapeKey();
+    }
+    if (e.key === "ArrowDown") {
+      currentIndex = (currentIndex + 1) % buttons.length;
+      updateActiveClass(buttons, currentIndex);
+    }
+    if (e.key === "ArrowUp") {
+      currentIndex = (currentIndex - 1 + buttons.length) % buttons.length;
+      updateActiveClass(buttons, currentIndex);
+    }
+  };
+  if (SeriesScreenKeydownHandler) {
+    document.removeEventListener("keydown", SeriesScreenKeydownHandler);
+  }
+  SeriesScreenKeydownHandler = handleKeydown;
+  document.addEventListener("keydown", handleKeydown);
+}
+function cleanupSeriesScreenController() {
+  if (SeriesScreenKeydownHandler) {
+    document.removeEventListener("keydown", SeriesScreenKeydownHandler);
+    SeriesScreenKeydownHandler = null; // Reset the reference
+  }
+  const buttons = document.querySelectorAll("#Series ul li");
+  buttons.forEach((button, index) => {
+    if (button.classList.contains("active")) {
+      localStorage.setItem("lastActive", index);
+    }
+  });
+}
+// Series Screen Controller and Cleaner End--------------------------------
+
+// Movies Screen Controller and Cleaner Start--------------------------------
+async function runMoviesController() {
+  console.log("In runMoviesController");
+  const buttons = document.querySelectorAll("#Movie .categories li");
+  let currentIndex =
+    Array.from(buttons).findIndex((item) =>
+      item.classList.contains("active")
+    ) || 0;
+
+  const handleKeydown = async (e) => {
+    if (e.key === "ArrowRight") {
+      currentPlace = "Movies content area";
+      cleanupMoviesScreenController();
+      await controlContentArea(buttons[currentIndex].id);
+    }
+    if (e.key === "Enter") {
+      currentPlace = "Movies content area";
+      cleanupMoviesScreenController();
+      await controlContentArea(buttons[currentIndex].id);
+    }
+    if (e.key === "Escape") {
+      cleanupMoviesScreenController();
+      handleEscapeKey();
+    }
+    if (e.key === "ArrowDown") {
+      currentIndex = (currentIndex + 1) % buttons.length;
+      updateActiveClass(buttons, currentIndex);
+    }
+    if (e.key === "ArrowUp") {
+      currentIndex = (currentIndex - 1 + buttons.length) % buttons.length;
+      updateActiveClass(buttons, currentIndex);
     }
   };
 
-  // Keyboard navigation
-  document.addEventListener("keydown", (e) => {
-    const category = localStorage.getItem("category");
-  const contentArea = document.querySelector(`#${category} .content`)
-    const contentDataItems = document.querySelectorAll(".content-data .item");
-    const categoryListItems = document.querySelectorAll(
-      `#${category} .category-sidebar li`
-    );
-    if (
-      [
-        "ArrowLeft",
-        "ArrowRight",
-        "ArrowUp",
-        "ArrowDown",
-        "Enter",
-        "Escape",
-      ].includes(e.key)
-    ) {
-      const activeButton = document.querySelector(
-        "#main-menu .buttons button.active"
-      );
-      if (e.key === "Enter" && !activeButton) {
-        console.log("No active button, Enter key event disabled.");
-        return;
+  if (MoviesScreenKeydownHandler) {
+    document.removeEventListener("keydown", MoviesScreenKeydownHandler);
+  }
+  MoviesScreenKeydownHandler = handleKeydown;
+  document.addEventListener("keydown", handleKeydown);
+}
+
+function cleanupMoviesScreenController() {
+  if (MoviesScreenKeydownHandler) {
+    document.removeEventListener("keydown", MoviesScreenKeydownHandler);
+    MoviesScreenKeydownHandler = null; // Reset the reference
+  }
+}
+
+// Movies Screen Controller and Cleaner End--------------------------------
+
+// Content Screen Controller and Cleaner Start--------------------------------
+async function controlContentArea(id) {
+  console.log("Controller Initialized with id: " + id);
+  await fetchDataById(id);
+
+  const items = document.querySelectorAll(".content-data .item");
+  const columns = 4;
+  const rows = Math.ceil(items.length / columns);
+  let currentIndex = 0; // Start at the first item
+
+  const handleKeydown = async (e) => {
+    let currentRow = Math.floor(currentIndex / columns);
+    let currentCol = currentIndex % columns;
+
+    if (e.key === "ArrowRight") {
+      if (currentCol < columns - 1 && currentIndex + 1 < items.length) {
+        currentIndex++;
+        updateActiveClass(items, currentIndex);
       }
-
-      if (activeButton) {
-        buttons[currentIndex].classList.remove("active");
-      }
-
-      switch (e.key) {
-        case "ArrowLeft":
-          if (!mainMenu.classList.contains("d-none")) {
-            currentIndex = (currentIndex - 1 + buttons.length) % buttons.length;
-          } else {
-            if (contentDataIndex % itemsPerRow === 0) {
-              document.querySelector(`#${category} .content`).classList.add("d-none");
-              document
-                .querySelector(`#${category} .categories`)
-                .classList.remove("d-none");
-                contentDataIndex = -1;
-
-              if (categoryListItems.length > 0) {
-                highlightItem(categoryListItems, localStorage.getItem("lastCategoryClicked"));
-                const categoriesContainer = document.querySelector(
-                  `#${category} .categories`
-                );
-                // enableKeyboardNavigation(categoriesContainer);
-              }
-            } else {
-              contentDataIndex =
-                (contentDataIndex - 1 + contentDataItems.length) %
-                contentDataItems.length;
-              highlightItem(contentDataItems, contentDataIndex);
-            }
-          }
-          break;
-        
-
-        case "ArrowRight":
-          console.log()
-          if (!mainMenu.classList.contains("d-none")) {
-            currentIndex = (currentIndex + 1) % buttons.length;
-            
-          } else {
-            contentDataIndex = (contentDataIndex + 1) % contentDataItems.length;
-            highlightItem(contentDataItems, contentDataIndex);
-            highlightItem(categoryListItems, localStorage.getItem("lastCategoryClicked"));
-          }
-          break;
-
-        case "ArrowUp":
-          if (mainMenu.classList.contains("d-none") && !contentArea.classList.contains("d-none")) {
-            if (contentDataIndex - itemsPerRow >= 0) {
-              contentDataIndex -= itemsPerRow;
-            }
-            highlightItem(contentDataItems, contentDataIndex);
-          }
-          break;
-
-        case "ArrowDown":
-          if (mainMenu.classList.contains("d-none") && !contentArea.classList.contains("d-none")) {
-            if (contentDataIndex + itemsPerRow < contentDataItems.length) {
-              contentDataIndex += itemsPerRow;
-            }
-            highlightItem(contentDataItems, contentDataIndex);
-          }
-          break;
-
-        case "Enter":
-          handleEnterKey(mainMenu);
-          
-          break;
-
-        case "Escape":
-          handleEscapeKey(mainMenu);
-          break;
-      }
-
-      buttons[currentIndex].classList.add("active");
-      saveDataTypeToLocalStorage();
     }
-  });
 
-  // Button click event listener
-  buttons.forEach((button, index) => {
-    button.addEventListener("click", () => {
-      buttons[currentIndex].classList.remove("active");
-      currentIndex = index;
-      button.classList.add("active");
-      saveDataTypeToLocalStorage();
-      mainMenu.style.display = "none";
-    });
-  });
-});
+    if (e.key === "ArrowLeft") {
+      if (currentCol === 0) {
+        console.log("Exiting"); // Log 'exiting' if at the first column of a row
+        cleanupContentScreenController();
+        if (!MoviesScreenKeydownHandler) {
+          await runMoviesController();
+        }
+        if (!SeriesScreenKeydownHandler) {
+          await runSeriesController();
+        }
+      } else {
+        currentIndex--;
+        updateActiveClass(items, currentIndex);
+      }
+    }
 
-// function to handle enter key event
-function handleEnterKey(mainMenu) {
+    if (e.key === "ArrowDown") {
+      if (currentRow < rows - 1 && currentIndex + columns < items.length) {
+        currentIndex += columns;
+        updateActiveClass(items, currentIndex);
+      }
+    }
+
+    if (e.key === "ArrowUp") {
+      if (currentRow > 0) {
+        currentIndex -= columns;
+        updateActiveClass(items, currentIndex);
+      }
+    }
+
+    if (e.key === "Escape") {
+      cleanupContentScreenController();
+      handleEscapeKey();
+    }
+  };
+
+  // Remove any previous keydown handler
+  if (ContentScreenKeydownHandler) {
+    document.removeEventListener("keydown", ContentScreenKeydownHandler);
+  }
+
+  // Add the new keydown handler
+  ContentScreenKeydownHandler = handleKeydown;
+  document.addEventListener("keydown", handleKeydown);
+
+  // Initialize the active class
+  updateActiveClass(items, currentIndex);
+}
+
+function cleanupContentScreenController() {
+  console.log("cleanupContentScreenController");
+  if (ContentScreenKeydownHandler) {
+    document.removeEventListener("keydown", ContentScreenKeydownHandler);
+    ContentScreenKeydownHandler = null; // Reset the reference
+  }
+}
+// Content Screen Controller and Cleaner End--------------------------------
+
+const updateActiveClass = (items, index) => {
+  items.forEach((item) => item.classList.remove("active"));
+  items[index].classList.add("active");
+  items[index].scrollIntoView({ behavior: "instant", block: "start" });
+};
+
+var lastCategoryClicked = 0;
+localStorage.setItem("lastCategoryClicked", 0);
+
+async function handleEnterKey(button) {
+  cleanupMainMenuController();
+  localStorage.setItem("category", button.getAttribute("data-type"));
   const category = localStorage.getItem("category");
+  if (["Catchup", "Live", "Settings", "Reload"].includes(category)) {
+    return;
+  }
   const contentDataContainer = document.querySelector(`#${category} .content`);
-  contentDataContainer.classList.contains("d-none");
-  if (category) {
+  if (category && contentDataContainer.classList.contains("d-none")) {
     switch (category) {
       case "Series":
-        if (mainMenu) mainMenu.classList.add("d-none");
+        mainMenu.classList.add("d-none");
         document.getElementById(category).classList.remove("d-none");
-          if(contentDataContainer.classList.contains("d-none") === true) {
-            fetchCurrentCategories();
-          }else if(contentDataContainer.classList.contains("d-none") === false){
-            return
-          }
+
+        // Fetch data for the selected category
+        await fetchCurrentCategories();
+        runSeriesController();
+        break;
+
       case "Movie":
         if (mainMenu) mainMenu.classList.add("d-none");
         document.getElementById(category).classList.remove("d-none");
-        if(contentDataContainer.classList.contains("d-none") === true) {
-          fetchCurrentCategories();
-        }else if(contentDataContainer.classList.contains("d-none") === false){
-          return
-        }
+
+        // Fetch data for the selected category
+        await fetchCurrentCategories();
+        runMoviesController();
+
+        break;
       case "Live":
         return null;
       case "Catchup":
@@ -194,15 +314,24 @@ function handleEnterKey(mainMenu) {
 }
 // function to handle ESC key event
 
-function handleEscapeKey(mainMenu) {
+function handleEscapeKey() {
+  if (!SeriesScreenKeydownHandler) {
+    cleanupSeriesScreenController();
+  }
+  if (!mainMenuKeydownHandler) {
+    cleanupSeriesScreenController();
+  }
   const sections = ["Series", "Movie"];
   for (const section of sections) {
     const sectionElement = document.getElementById(section);
-     if (sectionElement && !sectionElement.classList.contains("d-none")) {
-      sectionElement.classList.add("d-none");
-      mainMenu.classList.remove("d-none");
-      EmptyContent(section);
-      localStorage.setItem("lastCategoryClicked" , 0)
+    const sectionContent = document.querySelector(`#${section} .content`);
+    sectionContent.classList.add("d-none");
+    sectionElement.classList.add("d-none");
+    mainMenu.classList.remove("d-none");
+    EmptyContent(section);
+    localStorage.setItem("lastCategoryClicked", 0);
+    if (!mainMenuKeydownHandler) {
+      runMainMenuController();
     }
   }
 }
@@ -229,13 +358,13 @@ async function fetchCurrentCategories() {
       return;
     }
     categoriesContainer.innerHTML = "";
-    var firstItemId
+    var firstItemId;
     data.categories.forEach((categoryItem, index) => {
       const listItem = document.createElement("li");
       listItem.id = categoryItem._id;
       listItem.tabIndex = 0;
       listItem.innerHTML = `<p class=\"name\">${categoryItem.category}</p>`;
-      if (index === Number(localStorage.getItem("lastCategoryClicked"))){
+      if (index === Number(localStorage.getItem("lastCategoryClicked"))) {
         listItem.classList.add("active");
         firstItemId = listItem.id;
       } // Default active item
@@ -243,7 +372,7 @@ async function fetchCurrentCategories() {
     });
     await fetchDataById(firstItemId);
 
-    enableKeyboardNavigation(categoriesContainer);
+    // enableKeyboardNavigation(categoriesContainer);
   } catch (error) {
     console.error("Error fetching data", error);
   }
@@ -263,25 +392,31 @@ function enableKeyboardNavigation(container) {
       contentContainer && !contentContainer.classList.contains("d-none");
 
     if (isContentVisible) {
-        console.log("Returning")
+      console.log("Returning");
       return;
     }
 
     if (listItems.length === 0) return;
 
-    if (event.key === "ArrowDown" && contentContainer.classList.contains("d-none")) {
+    if (
+      event.key === "ArrowDown" &&
+      contentContainer.classList.contains("d-none")
+    ) {
       currentIndex = (currentIndex + 1) % listItems.length;
-      localStorage.setItem("lastCategoryClicked", currentIndex)
+      localStorage.setItem("lastCategoryClicked", currentIndex);
       highlightItem(listItems, currentIndex);
-    } else if (event.key === "ArrowUp" && contentContainer.classList.contains("d-none")) {
+    } else if (
+      event.key === "ArrowUp" &&
+      contentContainer.classList.contains("d-none")
+    ) {
       currentIndex = (currentIndex - 1 + listItems.length) % listItems.length;
-      localStorage.setItem("lastCategoryClicked", currentIndex)
+      localStorage.setItem("lastCategoryClicked", currentIndex);
       highlightItem(listItems, currentIndex);
     } else if (event.key === "Enter" && currentIndex !== -1) {
       const selectedItem = listItems[currentIndex];
-      lastCategoryClicked = currentIndex
-      localStorage.setItem("lastCategoryClicked", currentIndex)
-      highlightItem(listItems, currentIndex)
+      lastCategoryClicked = currentIndex;
+      localStorage.setItem("lastCategoryClicked", currentIndex);
+      highlightItem(listItems, currentIndex);
       if (selectedItem) {
         await fetchDataById(selectedItem.id);
       }
@@ -298,7 +433,6 @@ function highlightItem(listItems, index) {
     currentItem.scrollIntoView({ behavior: "instant", block: "start" });
   }
 }
-
 
 // Function to fetch the selected category data By ID
 async function fetchDataById(id) {
