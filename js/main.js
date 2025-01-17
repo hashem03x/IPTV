@@ -77,26 +77,37 @@ runMainMenuController();
 // Main Menu Controller and Cleaner End--------------------------------
 
 // Series Screen Controller and Cleaner End--------------------------------
+
+let seriesCategoryhaveBeenSelected = false
 async function runSeriesController() {
-    if(SeriesScreenKeydownHandler !== null){
-        return
-    }
+  if (SeriesScreenKeydownHandler !== null) {
+    return;
+  }
+
   console.log("In runSeriesController");
   const buttons = document.querySelectorAll("#Series .categories li");
   let currentIndex =
     Array.from(buttons).findIndex((item) =>
       item.classList.contains("active")
     ) || 0;
+      if(!seriesCategoryhaveBeenSelected){
+        buttons[0].classList.add("selected");
+    }
+    seriesCategoryhaveBeenSelected = true;
   const handleKeydown = async (e) => {
     if (e.key === "ArrowRight") {
       currentPlace = "Series content area";
       cleanupSeriesScreenController();
-      await controlContentArea(buttons[currentIndex].id , "right");
+      await controlContentArea(buttons[currentIndex].id, "right");
     }
     if (e.key === "Enter") {
       currentPlace = "Series content area";
+      buttons.forEach((button) => {
+        button.classList.remove("selected");
+      });
+      buttons[currentIndex].classList.add("selected");
       cleanupSeriesScreenController();
-      await controlContentArea(buttons[currentIndex].id , "enter");
+      await controlContentArea(buttons[currentIndex].id, "enter");
     }
     if (e.key === "Escape") {
       if (!SeriesScreenKeydownHandler) {
@@ -109,7 +120,7 @@ async function runSeriesController() {
     }
     if (e.key === "ArrowDown") {
       currentIndex = (currentIndex + 1) % buttons.length;
-      console.log(buttons)
+      console.log(buttons);
       updateActiveClass(buttons, currentIndex);
     }
     if (e.key === "ArrowUp") {
@@ -137,7 +148,10 @@ function cleanupSeriesScreenController() {
 }
 // Series Screen Controller and Cleaner End--------------------------------
 
+
+
 // Movies Screen Controller and Cleaner Start--------------------------------
+let movieCategoryhaveBeenSelected = false
 async function runMoviesController() {
   console.log("In runMoviesController");
   const buttons = document.querySelectorAll("#Movie .categories li");
@@ -145,17 +159,24 @@ async function runMoviesController() {
     Array.from(buttons).findIndex((item) =>
       item.classList.contains("active")
     ) || 0;
-
+    if(!movieCategoryhaveBeenSelected){
+        buttons[0].classList.add("selected");
+    }
+    movieCategoryhaveBeenSelected = true;
   const handleKeydown = async (e) => {
     if (e.key === "ArrowRight") {
       currentPlace = "Movies content area";
       cleanupMoviesScreenController();
-      await controlContentArea(buttons[currentIndex].id , "right");
+      await controlContentArea(buttons[currentIndex].id, "right");
     }
     if (e.key === "Enter") {
       currentPlace = "Movies content area";
       cleanupMoviesScreenController();
-      await controlContentArea(buttons[currentIndex].id , "enter");
+      buttons.forEach((button) => {
+        button.classList.remove("selected");
+      });
+      buttons[currentIndex].classList.add("selected");
+      await controlContentArea(buttons[currentIndex].id, "enter");
     }
     if (e.key === "Escape") {
       cleanupMoviesScreenController();
@@ -188,16 +209,16 @@ function cleanupMoviesScreenController() {
 // Movies Screen Controller and Cleaner End--------------------------------
 
 // Content Screen Controller and Cleaner Start--------------------------------
-async function controlContentArea(id , byWho) {
+async function controlContentArea(id, byWho) {
   console.log("Controller Initialized with id: " + id);
 
-    if(byWho === "enter"){
-        await fetchDataById(id);   
-    }
+  if (byWho === "enter") {
+    await fetchDataById(id);
+  }
   const items = document.querySelectorAll(".content-data .item");
   const columns = 4;
   const rows = Math.ceil(items.length / columns);
-  let currentIndex = 0; // Start at the first item
+  let currentIndex = Number(localStorage.getItem("lastActiveIndex")) || 0;
 
   const handleKeydown = async (e) => {
     let currentRow = Math.floor(currentIndex / columns);
@@ -206,14 +227,22 @@ async function controlContentArea(id , byWho) {
     if (e.key === "ArrowRight") {
       if (currentCol < columns - 1 && currentIndex + 1 < items.length) {
         currentIndex++;
-        updateActiveClass(items, currentIndex);
+      } else if (
+        currentCol === columns - 1 &&
+        currentIndex + 1 < items.length
+      ) {
+        currentIndex++;
       }
+      updateActiveClass(items, currentIndex);
+      currentRow = Math.floor(currentIndex / columns);
+      currentCol = currentIndex % columns;
     }
 
     if (e.key === "ArrowLeft") {
       if (currentCol === 0) {
         console.log("Exiting"); // Log 'exiting' if at the first column of a row
         cleanupContentScreenController();
+        localStorage.setItem("lastActiveIndex", currentIndex);
         items[currentIndex].classList.remove("active");
         if (!MoviesScreenKeydownHandler) {
           await runMoviesController();
@@ -270,15 +299,14 @@ function cleanupContentScreenController() {
 // Content Screen Controller and Cleaner End--------------------------------
 
 const updateActiveClass = (items, index) => {
-    if(items.length === 0){
-        return
-    }
-    if(items){
-        items.forEach((item) => item.classList.remove("active"));
-        items[index].classList.add("active");
-        items[index].scrollIntoView({ behavior: "instant", block: "start" });
-
-    }
+  if (items.length === 0) {
+    return;
+  }
+  if (items) {
+    items.forEach((item) => item.classList.remove("active"));
+    items[index].classList.add("active");
+    items[index].scrollIntoView({ behavior: "instant", block: "start" });
+  }
 };
 
 var lastCategoryClicked = 0;
@@ -328,10 +356,11 @@ async function handleEnterKey(button) {
 // function to handle ESC key event
 
 function handleEscapeKey() {
-    const movieCategories = document.querySelector("#Movie .categories");
-    movieCategories.innerHTML = "";
-    const seriesCategories = document.querySelector("#Series .categories");
-    seriesCategories.innerHTML = "";
+  const movieCategories = document.querySelector("#Movie .categories");
+  movieCategories.innerHTML = "";
+  const seriesCategories = document.querySelector("#Series .categories");
+  seriesCategories.innerHTML = "";
+  localStorage.setItem("lastActiveIndex", 0);
   const sections = ["Series", "Movie"];
   for (const section of sections) {
     const sectionElement = document.getElementById(section);

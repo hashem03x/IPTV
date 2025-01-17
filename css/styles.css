@@ -97,6 +97,16 @@ header .right {
   height: 72px;
   cursor: pointer;
 }
+.category-sidebar .categories li.selected.active{
+  background-color: #e9d984;
+  color: black;
+  border: 2px solid white;
+}
+.category-sidebar .categories li.selected{
+  background-color: #e9d984;
+  color: black;
+  border: 2px solid white;
+}
 .category-sidebar .categories li.active {
   border: 2px solid #e9d984;
   color: #e9d984;
