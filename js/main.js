@@ -25,8 +25,7 @@ let mainMenuKeydownHandler = null;
 let SeriesScreenKeydownHandler = null;
 let MoviesScreenKeydownHandler = null;
 let ContentScreenKeydownHandler = null;
-localStorage.setItem("lastActiveIndex" , 0)
-
+localStorage.setItem("lastActiveIndex", 0);
 
 // Main Menu Controller and Cleaner Start--------------------------------
 function runMainMenuController() {
@@ -79,14 +78,14 @@ async function runSeriesController() {
   }
 
   console.log("In runSeriesController");
-  const buttons = document.querySelectorAll("#Series .categories li");
+  const buttons = document.querySelectorAll("#Series .categories li") || [];
   let currentIndex =
     Array.from(buttons).findIndex((item) =>
       item.classList.contains("active")
     ) || 0;
-    if (!seriesCategoryhaveBeenSelected && buttons.length > 0) {
-        buttons[0].classList.add("selected");
-      }
+  if (!seriesCategoryhaveBeenSelected && buttons.length > 0) {
+    buttons[0].classList.add("selected");
+  }
   seriesCategoryhaveBeenSelected = true;
   const handleKeydown = async (e) => {
     if (e.key === "ArrowRight") {
@@ -134,18 +133,15 @@ function cleanupSeriesScreenController() {
     document.removeEventListener("keydown", SeriesScreenKeydownHandler);
     SeriesScreenKeydownHandler = null; // Reset the reference
   }
-  const buttons = document.querySelectorAll("#Series ul li");
-  buttons.forEach((button, index) => {
-    if (button.classList.contains("active")) {
-      localStorage.setItem("lastActive", index);
-    }
-  });
 }
 // Series Screen Controller and Cleaner End--------------------------------
 
 // Movies Screen Controller and Cleaner Start--------------------------------
 let movieCategoryhaveBeenSelected = false;
 async function runMoviesController() {
+  if (MoviesScreenKeydownHandler !== null) {
+    return;
+  }
   console.log("In runMoviesController");
   const buttons = document.querySelectorAll("#Movie .categories li");
   let currentIndex =
@@ -155,6 +151,7 @@ async function runMoviesController() {
   if (!movieCategoryhaveBeenSelected && buttons.length > 0) {
     buttons[0].classList.add("selected");
   }
+  console.log(buttons);
   movieCategoryhaveBeenSelected = true;
   const handleKeydown = async (e) => {
     if (e.key === "ArrowRight") {
@@ -204,89 +201,85 @@ function cleanupMoviesScreenController() {
 
 // Content Screen Controller and Cleaner Start--------------------------------
 async function controlContentArea(id, byWho) {
-    console.log("Controller Initialized with id: " + id);
-  
-    if (byWho === "enter") {
-      await fetchDataById(id);
-    }
-  
-    const items = document.querySelectorAll(".content-data .item");
-    const columns = 4;
-    const rows = Math.ceil(items.length / columns);
-    let currentIndex = Number(localStorage.getItem("lastActiveIndex")) || -1;
-  
-    // If no item is active, initialize to the first item
-    if (currentIndex === -1 && items.length > 0) {
-      currentIndex = 0;
-      updateActiveClass(items, currentIndex); // Highlight the first item
-    }
-  
-    const handleKeydown = async (e) => {
-      let currentRow = Math.floor(currentIndex / columns);
-      let currentCol = currentIndex % columns;
-  
-      if (e.key === "ArrowRight") {
-        if (currentCol < columns - 1 && currentIndex + 1 < items.length) {
-          currentIndex++;
-        } else if (
-          currentCol === columns - 1 &&
-          currentIndex + 1 < items.length
-        ) {
-          currentIndex++;
-        }
-        updateActiveClass(items, currentIndex);
-        currentRow = Math.floor(currentIndex / columns);
-        currentCol = currentIndex % columns;
-      }
-  
-      if (e.key === "ArrowLeft") {
-        if (currentCol === 0) {
-          console.log("Exiting"); // Log 'exiting' if at the first column of a row
-          cleanupContentScreenController();
-          localStorage.setItem("lastActiveIndex", currentIndex);
-          items[currentIndex].classList.remove("active");
-          if (!MoviesScreenKeydownHandler !== null) {
-            await runMoviesController();
-          }
-          if (!SeriesScreenKeydownHandler !== null) {
-            await runSeriesController();
-          }
-        } else {
-          currentIndex--;
-          updateActiveClass(items, currentIndex);
-        }
-      }
-  
-      if (e.key === "ArrowDown") {
-        if (currentRow < rows - 1 && currentIndex + columns < items.length) {
-          currentIndex += columns;
-          updateActiveClass(items, currentIndex);
-        }
-      }
-  
-      if (e.key === "ArrowUp") {
-        if (currentRow > 0) {
-          currentIndex -= columns;
-          updateActiveClass(items, currentIndex);
-        }
-      }
-  
-      if (e.key === "Escape") {
-        cleanupContentScreenController();
-        handleEscapeKey();
-      }
-    };
-  
-    // Remove any previous keydown handler
-    if (ContentScreenKeydownHandler) {
-      document.removeEventListener("keydown", ContentScreenKeydownHandler);
-    }
-  
-    // Add the new keydown handler
-    ContentScreenKeydownHandler = handleKeydown;
-    document.addEventListener("keydown", handleKeydown);
+  console.log("Controller Initialized with id: " + id);
+
+  if (byWho === "enter") {
+    await fetchDataById(id);
   }
-  
+
+  const items = document.querySelectorAll(".content-data .item") || [];
+  const columns = 4;
+  const rows = Math.ceil(items.length / columns);
+  let currentIndex = Number(localStorage.getItem("lastActiveIndex")) || -1;
+  if (byWho === "right") {
+    updateActiveClass(items, Number(localStorage.getItem("lastActiveIndex")) || 0);
+  }
+  const handleKeydown = async (e) => {
+    let currentRow = Math.floor(currentIndex / columns);
+    let currentCol = currentIndex % columns;
+
+    if (e.key === "ArrowRight") {
+      if (currentCol < columns - 1 && currentIndex + 1 < items.length) {
+        currentIndex++;
+      } else if (
+        currentCol === columns - 1 &&
+        currentIndex + 1 < items.length
+      ) {
+        currentIndex++;
+      }
+      currentRow = Math.floor(currentIndex / columns);
+      currentCol = currentIndex % columns;
+      updateActiveClass(items, currentIndex);
+      localStorage.setItem("lastActiveIndex", currentIndex);
+    }
+
+    if (e.key === "ArrowLeft") {
+      if (currentCol === 0) {
+        console.log("Exiting");
+        cleanupContentScreenController();
+        localStorage.setItem("lastActiveIndex", currentIndex);
+        items[currentIndex].classList.remove("active");
+        if (MoviesScreenKeydownHandler === null) {
+          await runMoviesController();
+        } else if (SeriesScreenKeydownHandler === null) {
+          await runSeriesController();
+        }
+      } else {
+        currentIndex--;
+        updateActiveClass(items, currentIndex);
+        localStorage.setItem("lastActiveIndex", currentIndex);
+      }
+    }
+
+    if (e.key === "ArrowDown") {
+      if (currentRow < rows - 1 && currentIndex + columns < items.length) {
+        currentIndex += columns;
+        updateActiveClass(items, currentIndex);
+      }
+    }
+
+    if (e.key === "ArrowUp") {
+      if (currentRow > 0) {
+        currentIndex -= columns;
+        updateActiveClass(items, currentIndex);
+      }
+    }
+
+    if (e.key === "Escape") {
+      cleanupContentScreenController();
+      handleEscapeKey();
+    }
+  };
+
+  // Remove any previous keydown handler
+  if (ContentScreenKeydownHandler) {
+    document.removeEventListener("keydown", ContentScreenKeydownHandler);
+  }
+
+  // Add the new keydown handler
+  ContentScreenKeydownHandler = handleKeydown;
+  document.addEventListener("keydown", handleKeydown);
+}
 
 function cleanupContentScreenController() {
   console.log("cleanupContentScreenController");
@@ -308,9 +301,6 @@ const updateActiveClass = (items, index) => {
   }
 };
 
-var lastCategoryClicked = 0;
-localStorage.setItem("lastCategoryClicked", 0);
-
 async function handleEnterKey(button) {
   cleanupMainMenuController();
   localStorage.setItem("category", button.getAttribute("data-type"));
@@ -327,7 +317,7 @@ async function handleEnterKey(button) {
 
         // Fetch data for the selected category
         await fetchCurrentCategories();
-        runSeriesController();
+        await runSeriesController();
         break;
 
       case "Movie":
@@ -336,7 +326,7 @@ async function handleEnterKey(button) {
 
         // Fetch data for the selected category
         await fetchCurrentCategories();
-        runMoviesController();
+        await runMoviesController();
 
         break;
       case "Live":
@@ -361,6 +351,9 @@ function handleEscapeKey() {
   seriesCategories.innerHTML = "";
   movieCategoryhaveBeenSelected = false;
   seriesCategoryhaveBeenSelected = false;
+  cleanupContentScreenController();
+  cleanupMoviesScreenController();
+  cleanupSeriesScreenController();
   localStorage.setItem("lastActiveIndex", 0);
   const sections = ["Series", "Movie"];
   for (const section of sections) {
@@ -370,7 +363,6 @@ function handleEscapeKey() {
     sectionElement.classList.add("d-none");
     mainMenu.classList.remove("d-none");
     EmptyContent(section);
-    localStorage.setItem("lastCategoryClicked", 0);
     if (!mainMenuKeydownHandler) {
       runMainMenuController();
     }
@@ -412,57 +404,9 @@ async function fetchCurrentCategories() {
       categoriesContainer.appendChild(listItem);
     });
     await fetchDataById(firstItemId);
-
-    // enableKeyboardNavigation(categoriesContainer);
   } catch (error) {
     console.error("Error fetching data", error);
   }
-}
-
-// Function to enable keyboard navigation when sidebar is enabled
-function enableKeyboardNavigation(container) {
-  const category = localStorage.getItem("category");
-  const listItems = container.querySelectorAll(
-    `#${category} .category-sidebar li`
-  );
-  let currentIndex = -1;
-
-  document.addEventListener("keydown", async (event) => {
-    const contentContainer = document.querySelector(`#${category} .content`);
-    const isContentVisible =
-      contentContainer && !contentContainer.classList.contains("d-none");
-
-    if (isContentVisible) {
-      console.log("Returning");
-      return;
-    }
-
-    if (listItems.length === 0) return;
-
-    if (
-      event.key === "ArrowDown" &&
-      contentContainer.classList.contains("d-none")
-    ) {
-      currentIndex = (currentIndex + 1) % listItems.length;
-      localStorage.setItem("lastCategoryClicked", currentIndex);
-      highlightItem(listItems, currentIndex);
-    } else if (
-      event.key === "ArrowUp" &&
-      contentContainer.classList.contains("d-none")
-    ) {
-      currentIndex = (currentIndex - 1 + listItems.length) % listItems.length;
-      localStorage.setItem("lastCategoryClicked", currentIndex);
-      highlightItem(listItems, currentIndex);
-    } else if (event.key === "Enter" && currentIndex !== -1) {
-      const selectedItem = listItems[currentIndex];
-      lastCategoryClicked = currentIndex;
-      localStorage.setItem("lastCategoryClicked", currentIndex);
-      highlightItem(listItems, currentIndex);
-      if (selectedItem) {
-        await fetchDataById(selectedItem.id);
-      }
-    }
-  });
 }
 
 // function to highlight the selected item
