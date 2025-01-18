@@ -42,7 +42,6 @@ function runMainMenuController() {
       buttons[currentIndex].classList.remove("active");
       currentIndex = (currentIndex + 1) % buttons.length;
       buttons[currentIndex].classList.add("active");
-      console.log("Right");
     }
     if (e.key === "Enter") {
       handleEnterKey(buttons[currentIndex]);
@@ -60,7 +59,7 @@ function runMainMenuController() {
 function cleanupMainMenuController() {
   if (mainMenuKeydownHandler) {
     document.removeEventListener("keydown", mainMenuKeydownHandler);
-    mainMenuKeydownHandler = null; // Reset the reference
+    mainMenuKeydownHandler = null; // Reset reference
   }
   const buttons = document.querySelectorAll(".buttons button");
   buttons.forEach((button) => button.classList.remove("active"));
@@ -76,16 +75,13 @@ async function runSeriesController() {
   if (SeriesScreenKeydownHandler !== null) {
     return;
   }
+  cleanupContentScreenController();
   console.log("In runSeriesController");
   const buttons = document.querySelectorAll("#Series .categories li");
-  let currentIndex =
-    Array.from(buttons).findIndex((item) =>
-      item.classList.contains("active")
-    ) || 0;
+  let currentIndex = 0;
   if (!movieCategoryhaveBeenSelected && buttons.length > 0) {
     buttons[0].classList.add("selected");
   }
-  console.log(buttons);
   movieCategoryhaveBeenSelected = true;
   const handleKeydown = async (e) => {
     if (e.key === "ArrowRight") {
@@ -95,7 +91,7 @@ async function runSeriesController() {
     }
     if (e.key === "Enter") {
       currentPlace = "Series content area";
-      cleanupSeriesScreenController();
+      // cleanupSeriesScreenController();
       buttons.forEach((button) => {
         button.classList.remove("selected");
       });
@@ -126,8 +122,10 @@ async function runSeriesController() {
 function cleanupSeriesScreenController() {
   if (SeriesScreenKeydownHandler) {
     document.removeEventListener("keydown", SeriesScreenKeydownHandler);
-    SeriesScreenKeydownHandler = null; // Reset the reference
+    SeriesScreenKeydownHandler = null; // Reset reference
   }
+  const buttons = document.querySelectorAll("#Series .categories li");
+  buttons.forEach((button) => button.classList.remove("active"));
 }
 // Series Screen Controller and Cleaner End--------------------------------
 
@@ -137,16 +135,13 @@ async function runMoviesController() {
   if (MoviesScreenKeydownHandler !== null) {
     return;
   }
+  cleanupContentScreenController();
   console.log("In runMoviesController");
   const buttons = document.querySelectorAll("#Movie .categories li");
-  let currentIndex =
-    Array.from(buttons).findIndex((item) =>
-      item.classList.contains("active")
-    ) || 0;
+  let currentIndex = 0;
   if (!movieCategoryhaveBeenSelected && buttons.length > 0) {
     buttons[0].classList.add("selected");
   }
-  console.log(buttons);
   movieCategoryhaveBeenSelected = true;
   const handleKeydown = async (e) => {
     if (e.key === "ArrowRight") {
@@ -156,7 +151,7 @@ async function runMoviesController() {
     }
     if (e.key === "Enter") {
       currentPlace = "Movies content area";
-      cleanupMoviesScreenController();
+      // cleanupMoviesScreenController();
       buttons.forEach((button) => {
         button.classList.remove("selected");
       });
@@ -188,30 +183,33 @@ async function runMoviesController() {
 function cleanupMoviesScreenController() {
   if (MoviesScreenKeydownHandler) {
     document.removeEventListener("keydown", MoviesScreenKeydownHandler);
-    MoviesScreenKeydownHandler = null; // Reset the reference
+    MoviesScreenKeydownHandler = null; // Reset reference
   }
+  const buttons = document.querySelectorAll("#Movie .categories li");
+  buttons.forEach((button) => button.classList.remove("active"));
 }
 
 // Movies Screen Controller and Cleaner End--------------------------------
 
 // Content Screen Controller and Cleaner Start--------------------------------
 async function controlContentArea(id, byWho) {
-  console.log("Controller Initialized with id: " + id);
 
-  if (byWho === "enter") {
-    await fetchDataById(id);
-  }
-
+  console.log("In Content Screen Controller")
   const items = document.querySelectorAll(".content-data .item") || [];
+  if (items.length === 0) return; 
+
   const columns = 4;
   const rows = Math.ceil(items.length / columns);
-  let currentIndex = Number(localStorage.getItem("lastActiveIndex")) || -1;
+  let currentIndex = localStorage.getItem("lastActiveIndex") !== 0 ? localStorage.getItem("lastActiveIndex") : -1;
   if (byWho === "right") {
-    updateActiveClass(
-      items,
-      Number(localStorage.getItem("lastActiveIndex")) || 0
-    );
+    // currentIndex = currentIndex; 
+    updateActiveClass(items, currentIndex);
   }
+
+  if(byWho === "enter"){
+    await fetchDataById(id)
+  }
+
   const handleKeydown = async (e) => {
     let currentRow = Math.floor(currentIndex / columns);
     let currentCol = currentIndex % columns;
@@ -219,49 +217,44 @@ async function controlContentArea(id, byWho) {
     if (e.key === "ArrowRight") {
       if (currentCol < columns - 1 && currentIndex + 1 < items.length) {
         currentIndex++;
-      } else if (
-        currentCol === columns - 1 &&
-        currentIndex + 1 < items.length
-      ) {
+      } else if (currentIndex + 1 < items.length) {
         currentIndex++;
       }
-      currentRow = Math.floor(currentIndex / columns);
-      currentCol = currentIndex % columns;
       updateActiveClass(items, currentIndex);
       localStorage.setItem("lastActiveIndex", currentIndex);
     }
 
     if (e.key === "ArrowLeft") {
       if (currentCol === 0) {
-        console.log("Exiting");
-        cleanupContentScreenController();
-        
+        // Exit to category selection
         localStorage.setItem("lastActiveIndex", currentIndex);
-        items[currentIndex].classList.remove("active");
-        if (SeriesScreenKeydownHandler === null) {
+    
+        // Check if the Movie categories are not empty
+        if (document.querySelector("#Movie .categories").innerHTML.trim() !== "") {
+          await runMoviesController();
+        }
+        // Check if the Series categories are not empty
+        else if (document.querySelector("#Series .categories").innerHTML.trim() !== "") {
           await runSeriesController();
         }
-      } else if (MoviesScreenKeydownHandler === null) {
-        await runMoviesController();
       } else {
         currentIndex--;
         updateActiveClass(items, currentIndex);
         localStorage.setItem("lastActiveIndex", currentIndex);
       }
     }
+    
 
-    if (e.key === "ArrowDown") {
-      if (currentRow < rows - 1 && currentIndex + columns < items.length) {
+    if (e.key === "ArrowDown" && currentRow < rows - 1) {
+      if (currentIndex + columns < items.length) {
         currentIndex += columns;
         updateActiveClass(items, currentIndex);
       }
     }
 
-    if (e.key === "ArrowUp") {
-      if (currentRow > 0) {
-        currentIndex -= columns;
-        updateActiveClass(items, currentIndex);
-      }
+    if (e.key === "ArrowUp" && currentRow > 0) {
+      currentIndex -= columns;
+      updateActiveClass(items, currentIndex);
     }
 
     if (e.key === "Escape") {
@@ -270,22 +263,22 @@ async function controlContentArea(id, byWho) {
     }
   };
 
-  // Remove any previous keydown handler
   if (ContentScreenKeydownHandler) {
     document.removeEventListener("keydown", ContentScreenKeydownHandler);
   }
 
-  // Add the new keydown handler
   ContentScreenKeydownHandler = handleKeydown;
   document.addEventListener("keydown", handleKeydown);
 }
 
 function cleanupContentScreenController() {
-  console.log("cleanupContentScreenController");
+  console.log("Cleanup content screen controller")
   if (ContentScreenKeydownHandler) {
     document.removeEventListener("keydown", ContentScreenKeydownHandler);
-    ContentScreenKeydownHandler = null; // Reset the reference
+    ContentScreenKeydownHandler = null; // Reset reference
   }
+  const items = document.querySelectorAll(".content-data .item");
+  items.forEach((item) => item.classList.remove("active"));
 }
 // Content Screen Controller and Cleaner End--------------------------------
 
@@ -344,28 +337,31 @@ async function handleEnterKey(button) {
 // function to handle ESC key event
 
 function handleEscapeKey() {
-  const movieCategories = document.querySelector("#Movie .categories");
-  movieCategories.innerHTML = "";
-  const seriesCategories = document.querySelector("#Series .categories");
-  seriesCategories.innerHTML = "";
-  movieCategoryhaveBeenSelected = false;
-  seriesCategoryhaveBeenSelected = false;
   cleanupContentScreenController();
   cleanupMoviesScreenController();
   cleanupSeriesScreenController();
+  cleanupMainMenuController();
+
+  // Reset states
+  movieCategoryhaveBeenSelected = false;
+  seriesCategoryhaveBeenSelected = false;
+
+  // Clear categories
+  document.querySelector("#Movie .categories").innerHTML = "";
+  document.querySelector("#Series .categories").innerHTML = "";
+
+  // Reset UI
   localStorage.setItem("lastActiveIndex", 0);
   const sections = ["Series", "Movie"];
-  for (const section of sections) {
-    const sectionElement = document.getElementById(section);
-    const sectionContent = document.querySelector(`#${section} .content`);
-    sectionContent.classList.add("d-none");
-    sectionElement.classList.add("d-none");
-    mainMenu.classList.remove("d-none");
+  sections.forEach((section) => {
+    document.querySelector(`#${section}`).classList.add("d-none");
+    document.querySelector(`#${section} .content`).classList.add("d-none");
     EmptyContent(section);
-    if (!mainMenuKeydownHandler) {
-      runMainMenuController();
-    }
-  }
+  });
+  mainMenu.classList.remove("d-none");
+
+  // Restore Main Menu Controller
+  if (!mainMenuKeydownHandler) runMainMenuController();
 }
 
 // function to fetch Categories
