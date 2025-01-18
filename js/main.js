@@ -76,17 +76,17 @@ async function runSeriesController() {
   if (SeriesScreenKeydownHandler !== null) {
     return;
   }
-
   console.log("In runSeriesController");
-  const buttons = document.querySelectorAll("#Series .categories li") || [];
+  const buttons = document.querySelectorAll("#Series .categories li");
   let currentIndex =
     Array.from(buttons).findIndex((item) =>
       item.classList.contains("active")
     ) || 0;
-  if (!seriesCategoryhaveBeenSelected && buttons.length > 0) {
+  if (!movieCategoryhaveBeenSelected && buttons.length > 0) {
     buttons[0].classList.add("selected");
   }
-  seriesCategoryhaveBeenSelected = true;
+  console.log(buttons);
+  movieCategoryhaveBeenSelected = true;
   const handleKeydown = async (e) => {
     if (e.key === "ArrowRight") {
       currentPlace = "Series content area";
@@ -95,26 +95,20 @@ async function runSeriesController() {
     }
     if (e.key === "Enter") {
       currentPlace = "Series content area";
+      cleanupSeriesScreenController();
       buttons.forEach((button) => {
         button.classList.remove("selected");
       });
       buttons[currentIndex].classList.add("selected");
-      cleanupSeriesScreenController();
       localStorage.setItem("lastActiveIndex", 0);
       await controlContentArea(buttons[currentIndex].id, "enter");
     }
     if (e.key === "Escape") {
-      if (!SeriesScreenKeydownHandler) {
-        cleanupSeriesScreenController();
-      }
-      if (!MoviesScreenKeydownHandler) {
-        cleanupMoviesScreenController();
-      }
+      cleanupSeriesScreenController();
       handleEscapeKey();
     }
     if (e.key === "ArrowDown") {
       currentIndex = (currentIndex + 1) % buttons.length;
-      console.log(buttons);
       updateActiveClass(buttons, currentIndex);
     }
     if (e.key === "ArrowUp") {
@@ -122,6 +116,7 @@ async function runSeriesController() {
       updateActiveClass(buttons, currentIndex);
     }
   };
+
   if (SeriesScreenKeydownHandler) {
     document.removeEventListener("keydown", SeriesScreenKeydownHandler);
   }
@@ -212,7 +207,10 @@ async function controlContentArea(id, byWho) {
   const rows = Math.ceil(items.length / columns);
   let currentIndex = Number(localStorage.getItem("lastActiveIndex")) || -1;
   if (byWho === "right") {
-    updateActiveClass(items, Number(localStorage.getItem("lastActiveIndex")) || 0);
+    updateActiveClass(
+      items,
+      Number(localStorage.getItem("lastActiveIndex")) || 0
+    );
   }
   const handleKeydown = async (e) => {
     let currentRow = Math.floor(currentIndex / columns);
@@ -237,13 +235,14 @@ async function controlContentArea(id, byWho) {
       if (currentCol === 0) {
         console.log("Exiting");
         cleanupContentScreenController();
+        
         localStorage.setItem("lastActiveIndex", currentIndex);
         items[currentIndex].classList.remove("active");
-        if (MoviesScreenKeydownHandler === null) {
-          await runMoviesController();
-        } else if (SeriesScreenKeydownHandler === null) {
+        if (SeriesScreenKeydownHandler === null) {
           await runSeriesController();
         }
+      } else if (MoviesScreenKeydownHandler === null) {
+        await runMoviesController();
       } else {
         currentIndex--;
         updateActiveClass(items, currentIndex);
