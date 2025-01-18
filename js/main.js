@@ -45,9 +45,6 @@ function runMainMenuController() {
       buttons[currentIndex].classList.add("active");
     }
     if (e.key === "Enter") {
-      if(buttons[currentIndex].getAttribute("data-type" , "Live") ||buttons[currentIndex].getAttribute("data-type" , "Catchup") || buttons[currentIndex].getAttribute("data-type" , "Setting") || buttons[currentIndex].getAttribute("data-type" , "Reload") ){
-        return
-      } 
       handleEnterKey(buttons[currentIndex]);
     }
     if (e.key === "Escape") {
@@ -306,7 +303,7 @@ const updateActiveClass = (items, index) => {
   if (items) {
     items.forEach((item) => item.classList.remove("active"));
     items[index].classList.add("active");
-    items[index].scrollIntoView({ behavior: "instant", block: "start" });
+    items[index].scrollIntoView({ block: "nearest", inline: "center" });
   }
 };
 
