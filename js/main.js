@@ -32,6 +32,7 @@ function runMainMenuController() {
   const buttons = document.querySelectorAll(".buttons button");
   let currentIndex = 0;
   buttons[currentIndex].classList.add("active");
+  
   const handleKeydown = (e) => {
     if (e.key === "ArrowLeft") {
       buttons[currentIndex].classList.remove("active");
@@ -44,6 +45,9 @@ function runMainMenuController() {
       buttons[currentIndex].classList.add("active");
     }
     if (e.key === "Enter") {
+      if(buttons[currentIndex].getAttribute("data-type" , "Live") ||buttons[currentIndex].getAttribute("data-type" , "Catchup") || buttons[currentIndex].getAttribute("data-type" , "Setting") || buttons[currentIndex].getAttribute("data-type" , "Reload") ){
+        return
+      } 
       handleEnterKey(buttons[currentIndex]);
     }
     if (e.key === "Escape") {
