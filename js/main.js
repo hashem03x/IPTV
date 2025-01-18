@@ -78,7 +78,10 @@ async function runSeriesController() {
   cleanupContentScreenController();
   console.log("In runSeriesController");
   const buttons = document.querySelectorAll("#Series .categories li");
-  let currentIndex = 0;
+  let currentIndex = Array.from(buttons).findIndex((item) =>
+    item.classList.contains("selected")
+  );
+  currentIndex = currentIndex >= 0 ? currentIndex : 0;
   if (!movieCategoryhaveBeenSelected && buttons.length > 0) {
     buttons[0].classList.add("selected");
   }
@@ -138,7 +141,13 @@ async function runMoviesController() {
   cleanupContentScreenController();
   console.log("In runMoviesController");
   const buttons = document.querySelectorAll("#Movie .categories li");
-  let currentIndex = 0;
+  console.log("Series Buttons", buttons);
+  let currentIndex = Array.from(buttons).findIndex((item) =>
+    item.classList.contains("selected")
+  );
+  console.log("Current Index", currentIndex);
+  currentIndex = currentIndex >= 0 ? currentIndex : 0;
+
   if (!movieCategoryhaveBeenSelected && buttons.length > 0) {
     buttons[0].classList.add("selected");
   }
@@ -193,30 +202,31 @@ function cleanupMoviesScreenController() {
 
 // Content Screen Controller and Cleaner Start--------------------------------
 async function controlContentArea(id, byWho) {
-
-  console.log("In Content Screen Controller")
+  console.log("In Content Screen Controller");
   const items = document.querySelectorAll(".content-data .item") || [];
-  if (items.length === 0) return; 
+  if (items.length === 0) return;
 
   const columns = 4;
   const rows = Math.ceil(items.length / columns);
-  let currentIndex = localStorage.getItem("lastActiveIndex") !== 0 ? localStorage.getItem("lastActiveIndex") : -1;
+  let currentIndex = localStorage.getItem("lastActiveIndex");
+  currentIndex = currentIndex ? parseInt(currentIndex, 10) : -1;
+
   if (byWho === "right") {
-    // currentIndex = currentIndex; 
+    currentIndex = currentIndex;
     updateActiveClass(items, currentIndex);
   }
 
-  if(byWho === "enter"){
-    await fetchDataById(id)
+  if (byWho === "enter") {
+    await fetchDataById(id);
   }
 
   const handleKeydown = async (e) => {
     let currentRow = Math.floor(currentIndex / columns);
     let currentCol = currentIndex % columns;
-
+    
     if (e.key === "ArrowRight") {
-      if (currentCol < columns - 1 && currentIndex + 1 < items.length) {
-        currentIndex++;
+      if (currentIndex < 0) {
+        currentIndex = 0; // Set the first index on initial press
       } else if (currentIndex + 1 < items.length) {
         currentIndex++;
       }
@@ -228,13 +238,17 @@ async function controlContentArea(id, byWho) {
       if (currentCol === 0) {
         // Exit to category selection
         localStorage.setItem("lastActiveIndex", currentIndex);
-    
+
         // Check if the Movie categories are not empty
-        if (document.querySelector("#Movie .categories").innerHTML.trim() !== "") {
+        if (
+          document.querySelector("#Movie .categories").innerHTML.trim() !== ""
+        ) {
           await runMoviesController();
         }
         // Check if the Series categories are not empty
-        else if (document.querySelector("#Series .categories").innerHTML.trim() !== "") {
+        else if (
+          document.querySelector("#Series .categories").innerHTML.trim() !== ""
+        ) {
           await runSeriesController();
         }
       } else {
@@ -243,7 +257,6 @@ async function controlContentArea(id, byWho) {
         localStorage.setItem("lastActiveIndex", currentIndex);
       }
     }
-    
 
     if (e.key === "ArrowDown" && currentRow < rows - 1) {
       if (currentIndex + columns < items.length) {
@@ -272,7 +285,7 @@ async function controlContentArea(id, byWho) {
 }
 
 function cleanupContentScreenController() {
-  console.log("Cleanup content screen controller")
+  console.log("Cleanup content screen controller");
   if (ContentScreenKeydownHandler) {
     document.removeEventListener("keydown", ContentScreenKeydownHandler);
     ContentScreenKeydownHandler = null; // Reset reference
