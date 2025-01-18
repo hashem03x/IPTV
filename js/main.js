@@ -460,7 +460,7 @@ function displayFetchedData(data) {
   data.forEach((categoryItem) => {
     displayContainer.innerHTML += `
       <div class="item me-3">
-        <img class="img-fluid" src='${categoryItem.poster}' />
+        <img class="w-100" src='${categoryItem.poster}' />
         <p class="name">${categoryItem.name}</p>
       </div>`;
   });

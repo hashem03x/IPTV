@@ -140,7 +140,7 @@ header .right {
 }
 .content-data .item .name {
   background-color: #7e7d7e4d;
-  max-width:94% !important;
+  max-width: 100% !important;
   font-size: 20px;
   font-weight: 400;
   border-radius: 6.14px;
