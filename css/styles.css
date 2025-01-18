@@ -132,6 +132,7 @@ header .right {
   border-top-left-radius: 6.14px !important;
   border-top-right-radius: 6.14px !important;
   overflow: hidden;
+  width: 21%;
 }
 .content-data .item.active p.name {
   background-color: #e9d984;
@@ -139,7 +140,7 @@ header .right {
 }
 .content-data .item .name {
   background-color: #7e7d7e4d;
-  max-width: 100% !important;
+  max-width:94% !important;
   font-size: 20px;
   font-weight: 400;
   border-radius: 6.14px;
